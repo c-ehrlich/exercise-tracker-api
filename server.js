@@ -36,11 +36,14 @@ let ExerciseUser = mongoose.model("ExerciseUser", exerciseUserSchema);
 // ACTIVITY
 const exerciseActivitySchema = new Schema({
   user_id: { type: String, required: true },
-  description: { type: String },
-  duration: { type: Number },
+  description: { type: String, required: true },
+  duration: { type: Number, required: true },
   date: { type: String, required: true },
-})
-let ExerciseActivity = mongoose.model("ExerciseActivity", exerciseActivitySchema);
+});
+let ExerciseActivity = mongoose.model(
+  "ExerciseActivity",
+  exerciseActivitySchema
+);
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                     API routes                            *
@@ -98,43 +101,90 @@ app
     });
   });
 
-app
-  .route("/api/users/:_id/exercises")
-  /**
-   * GET /api/users/:_id/exercises
-   */
-  .get((req, res) => {
-    // get user id from params and check that it won't break the DB query
-    const { _id } = req.params;
-    if (_id.length !== 24) {
-      res.json({ error: "User ID needs to be 24 hex characters" });
+app.get("/api/users/:_id/logs", (req, res) => {
+  // get user id from params and check that it won't break the DB query
+  const { _id } = req.params;
+  if (_id.length !== 24) {
+    res.json({ error: "User ID needs to be 24 hex characters" });
+    return;
+  }
+
+  // find the user
+  getUserByIdAnd(_id, (userObject) => {
+    if (userObject === null) res.json({ error: "User not found" });
+    else {
+      let promise = ExerciseActivity.find({ user_id: _id }).exec();
+      assert.ok(promise instanceof Promise);
+      promise.then((exerciseObjects) => {
+        trimmedExerciseObjects = exerciseObjects.map((e) => ({
+          description: e.description,
+          duration: e.duration,
+          date: e.date,
+        }));
+        res.json({
+          username: userObject.username,
+          _id: userObject._id,
+          count: trimmedExerciseObjects.length,
+          log: trimmedExerciseObjects,
+        });
+      });
+    }
+  });
+});
+
+app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
+  const { _id } = req.params;
+  if (_id.length !== 24) {
+    res.json({ error: "User ID needs to be 24 hex characters" });
+    return;
+  }
+
+  getUserByIdAnd(_id, (userObject) => {
+    console.log(userObject);
+    // handle / validate data
+    let { description, duration, date } = req.body;
+    if (description === "" || duration === "") {
+      res.json({ error: "Please provide a description and duration" });
       return;
     }
+    duration = parseInt(duration, 10);
+    if (isNaN(duration)) {
+      res.json({ error: "Please provide a valid duration number" });
+      return;
+    }
+    date = new Date(date);
+    // TODO validate date
+    const dbDate = date.toDateString();
 
-    // find the user
-    let promise = ExerciseUser.findOne({ _id: _id }).exec();
-    assert.ok(promise instanceof Promise);
-    promise.then((userObject) => {
-      if (userObject === null) res.json({ error: "User not found" })
-      else {
-        let promise = ExerciseActivity.find({ user_id: _id }).exec();
-        assert.ok(promise instanceof Promise);
-        promise.then((exerciseObjects) => {
-          res.json({
-            username: userObject.username,
-            _id: userObject._id,
-            count: exerciseObjects.length,
-            log: exerciseObjects
-          })
-        })
-      }
-    })
-  })
-  .post(bodyParserUrlEncoded, (req, res) => {
-    const { _id } = req.params;
-    res.json({ todo: "todo", _id: _id });
+    // Add exercise to DB
+    const exercise = new ExerciseActivity({
+      user_id: userObject._id,
+      description: description,
+      duration: duration,
+      date: dbDate,
+    });
+    exercise.save();
+
+    // return user and exercise info as JSON
+    res.json({
+      _id: userObject._id,
+      username: userObject.username,
+      description: description,
+      duration: duration,
+      date: dbDate,
+    });
   });
+});
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *                     Utilities                             *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+const getUserByIdAnd = (_id, callback) => {
+  let promise = ExerciseUser.findOne({ _id: _id }).exec();
+  assert.ok(promise instanceof Promise);
+  promise.then((userObject) => callback(userObject));
+};
