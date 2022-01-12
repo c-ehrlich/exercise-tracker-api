@@ -123,15 +123,25 @@ app.get("/api/users/:_id/logs", (req, res) => {
   getUserByIdAnd(_id, (userObject) => {
     if (userObject === null) res.json({ error: "User not found" });
     else {
-      // get from, to, limit from query
-      // TODO: implement using these to filter
-      const { from, to, limit } = req.query;
+      const limit = req.query.limit ? req.query.limit : 0;
 
       // find the user's activities
-      let promise = ExerciseActivity.find({ user_id: _id }).exec();
+      let promise = ExerciseActivity.find({ user_id: _id }).limit(limit).exec();
       assert.ok(promise instanceof Promise);
       promise.then((exerciseObjects) => {
-        trimmedExerciseObjects = exerciseObjects.map((e) => ({
+        if (req.query.from) {
+          const from = new Date(req.query.from);
+          exerciseObjects = exerciseObjects.filter(
+            (e) => new Date(e.date).getTime() >= from.getTime()
+          );
+        }
+        if (req.query.to) {
+          const to = new Date(req.query.to);
+          exerciseObjects = exerciseObjects.filter(
+            (e) => new Date(e.date).getTime() <= to.getTime()
+          );
+        }
+        exerciseObjects = exerciseObjects.map((e) => ({
           description: e.description,
           duration: e.duration,
           date: new Date(e.date).toDateString(),
@@ -140,8 +150,8 @@ app.get("/api/users/:_id/logs", (req, res) => {
         res.json({
           _id: userObject._id,
           username: userObject.username,
-          count: trimmedExerciseObjects.length,
-          log: trimmedExerciseObjects,
+          count: exerciseObjects.length,
+          log: exerciseObjects,
         });
       });
     }
@@ -163,8 +173,6 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
   getUserByIdAnd(_id, (userObject) => {
     // handle / validate data
     let { description, duration, date } = req.body;
-    console.log("date: " + date);
-    console.log("typeof date: " + typeof date);
     if (description === "" || duration === "") {
       res.json({ error: "Please provide a description and duration" });
       return;
