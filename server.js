@@ -1,3 +1,6 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *                        Setup Packages                     *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 require("dotenv").config();
 const express = require("express");
 const app = express();
@@ -50,12 +53,12 @@ let ExerciseActivity = mongoose.model(
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 app
-  .route("/api/users")
   /**
    * GET /api/users
    *
    * Returns a list of all users
    */
+  .route("/api/users")
   .get((req, res) => {
     ExerciseUser.find({}, (err, docs) => {
       if (err) {
@@ -66,6 +69,7 @@ app
       }
     });
   })
+
   /**
    * POST /api/users
    *
@@ -101,6 +105,11 @@ app
     });
   });
 
+/**
+ * GET /api/users/:_id/logs
+ *
+ * View the activities log for one user
+ */
 app.get("/api/users/:_id/logs", (req, res) => {
   // get user id from params and check that it won't break the DB query
   const { _id } = req.params;
@@ -114,6 +123,7 @@ app.get("/api/users/:_id/logs", (req, res) => {
   getUserByIdAnd(_id, (userObject) => {
     if (userObject === null) res.json({ error: "User not found" });
     else {
+      // find the user's activities
       let promise = ExerciseActivity.find({ user_id: _id }).exec();
       assert.ok(promise instanceof Promise);
       promise.then((exerciseObjects) => {
@@ -123,8 +133,8 @@ app.get("/api/users/:_id/logs", (req, res) => {
           date: new Date(e.date).toDateString(),
         }));
         res.json({
-          username: userObject.username,
           _id: userObject._id,
+          username: userObject.username,
           count: trimmedExerciseObjects.length,
           log: trimmedExerciseObjects,
         });
@@ -133,6 +143,11 @@ app.get("/api/users/:_id/logs", (req, res) => {
   });
 });
 
+/**
+ * POST /api/users/:_id/exercises
+ *
+ * Submit a new exercise
+ */
 app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
   const { _id } = req.params;
   if (_id.length !== 24) {
@@ -141,7 +156,6 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
   }
 
   getUserByIdAnd(_id, (userObject) => {
-    console.log(userObject);
     // handle / validate data
     let { description, duration, date } = req.body;
     if (description === "" || duration === "") {
@@ -180,10 +194,18 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
   });
 });
 
+/**
+ * GET /api/delete
+ *
+ * deletes all users and activities
+ */
 app.get("/api/delete", (req, res) => {
   ExerciseActivity.deleteMany({}, (err) => {
     if (err) console.error(err);
-    res.json({ status: "All exercise items deleted" });
+    ExerciseUser.deleteMante({}, (err) => {
+      if (err) console.error(err);
+      res.json({ status: "All exercise items deleted" });
+    });
   });
 });
 
