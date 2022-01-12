@@ -199,9 +199,9 @@ const getUserByIdAnd = (_id, callback) => {
 
 const isValidDate = (date) => {
   // https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
-  if (Object.prototype.toString.call(d) === "[object Date]") {
+  if (Object.prototype.toString.call(date) === "[object Date]") {
     return true;
-    if (isNaN(d.getTime())) {
+    if (isNaN(date.getTime())) {
       // d.valueOf() could also work
       return false;
     } else {
