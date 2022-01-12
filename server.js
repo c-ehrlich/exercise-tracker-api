@@ -163,6 +163,8 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
   getUserByIdAnd(_id, (userObject) => {
     // handle / validate data
     let { description, duration, date } = req.body;
+    console.log("date: " + date);
+    console.log("typeof date: " + typeof date);
     if (description === "" || duration === "") {
       res.json({ error: "Please provide a description and duration" });
       return;
@@ -172,12 +174,12 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
       res.json({ error: "Please provide a valid duration number" });
       return;
     }
-    if (date === "") date = new Date();
+    if (date === "" || date === undefined) date = new Date();
     else date = new Date(date);
-    // if (!isValidDate(date)) {
-    //   res.json({ error: "Invalid date." });
-    //   return;
-    // }
+    if (!isValidDate(date)) {
+      res.json({ error: "Invalid date." });
+      return;
+    }
 
     // Add exercise to DB
     const exercise = new ExerciseActivity({
