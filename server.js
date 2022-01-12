@@ -81,28 +81,28 @@ app
     const { username } = req.body;
 
     // look up if a user with this name already exists ... if so res error
-    // let promise = ExerciseUser.findOne({ username: username }).exec();
-    // assert.ok(promise instanceof Promise);
-    // promise.then((userObject) => {
-    //   if (userObject !== null) {
-    //     // The user exists, so return the object
-    //     res.json({
-    //       username: userObject.username,
-    //       _id: userObject._id,
-    //     });
-    //   } else {
-    //     // The user does not yet exist, so create a new one
-    const newUser = new ExerciseUser({ username: username });
-    newUser.save((err) => {
-      if (err) res.json({ Error: err });
-      else
+    let promise = ExerciseUser.findOne({ username: username }).exec();
+    assert.ok(promise instanceof Promise);
+    promise.then((userObject) => {
+      if (userObject !== null) {
+        // The user exists, so return the object
         res.json({
-          username: newUser.username,
-          _id: newUser._id,
+          username: userObject.username,
+          _id: userObject._id,
         });
+      } else {
+        // The user does not yet exist, so create a new one
+        const newUser = new ExerciseUser({ username: username });
+        newUser.save((err) => {
+          if (err) res.json({ Error: err });
+          else
+            res.json({
+              username: newUser.username,
+              _id: newUser._id,
+            });
+        });
+      }
     });
-    //   }
-    // });
   });
 
 /**
