@@ -26,11 +26,21 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 });
 const { Schema } = mongoose;
+
+// USER
 const exerciseUserSchema = new Schema({
   username: { type: String, required: true },
 });
 let ExerciseUser = mongoose.model("ExerciseUser", exerciseUserSchema);
-// TODO exercise model
+
+// ACTIVITY
+const exerciseActivitySchema = new Schema({
+  user_id: { type: String, required: true },
+  description: { type: String },
+  duration: { type: Number },
+  date: { type: String, required: true },
+})
+let ExerciseActivity = mongoose.model("ExerciseActivity", exerciseActivitySchema);
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                     API routes                            *
@@ -40,7 +50,7 @@ app
   .route("/api/users")
   /**
    * GET /api/users
-   * 
+   *
    * Returns a list of all users
    */
   .get((req, res) => {
@@ -51,7 +61,7 @@ app
       } else {
         res.json(docs);
       }
-    })
+    });
   })
   /**
    * POST /api/users
@@ -86,6 +96,43 @@ app
         });
       }
     });
+  });
+
+app
+  .route("/api/users/:_id/exercises")
+  /**
+   * GET /api/users/:_id/exercises
+   */
+  .get((req, res) => {
+    // get user id from params and check that it won't break the DB query
+    const { _id } = req.params;
+    if (_id.length !== 24) {
+      res.json({ error: "User ID needs to be 24 hex characters" });
+      return;
+    }
+
+    // find the user
+    let promise = ExerciseUser.findOne({ _id: _id }).exec();
+    assert.ok(promise instanceof Promise);
+    promise.then((userObject) => {
+      if (userObject === null) res.json({ error: "User not found" })
+      else {
+        let promise = ExerciseActivity.find({ user_id: _id }).exec();
+        assert.ok(promise instanceof Promise);
+        promise.then((exerciseObjects) => {
+          res.json({
+            username: userObject.username,
+            _id: userObject._id,
+            count: exerciseObjects.length,
+            log: exerciseObjects
+          })
+        })
+      }
+    })
+  })
+  .post(bodyParserUrlEncoded, (req, res) => {
+    const { _id } = req.params;
+    res.json({ todo: "todo", _id: _id });
   });
 
 const listener = app.listen(process.env.PORT || 3000, () => {
