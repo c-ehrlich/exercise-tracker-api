@@ -153,7 +153,8 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
       res.json({ error: "Please provide a valid duration number" });
       return;
     }
-    date = new Date(date !== "" && date);
+    if (date === "") date = new Date();
+    else date = new Date(date);
     if (!isValidDate(date)) {
       res.json({ error: "Invalid date." });
       return;
