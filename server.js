@@ -113,7 +113,6 @@ app
 app.get("/api/users/:_id/logs", (req, res) => {
   // get user id from params and check that it won't break the DB query
   const { _id } = req.params;
-  const { from, to, limit } = req.query;
   if (_id.length !== 24) {
     res.json({ error: "User ID needs to be 24 hex characters" });
     return;
@@ -123,6 +122,10 @@ app.get("/api/users/:_id/logs", (req, res) => {
   getUserByIdAnd(_id, (userObject) => {
     if (userObject === null) res.json({ error: "User not found" });
     else {
+      // get from, to, limit from query
+      // TODO: implement using these to filter
+      const { from, to, limit } = req.query;
+
       // find the user's activities
       let promise = ExerciseActivity.find({ user_id: _id }).exec();
       assert.ok(promise instanceof Promise);
@@ -132,6 +135,7 @@ app.get("/api/users/:_id/logs", (req, res) => {
           duration: e.duration,
           date: new Date(e.date).toDateString(),
         }));
+
         res.json({
           _id: userObject._id,
           username: userObject.username,
