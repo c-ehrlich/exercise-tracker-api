@@ -120,7 +120,7 @@ app.get("/api/users/:_id/logs", (req, res) => {
         trimmedExerciseObjects = exerciseObjects.map((e) => ({
           description: e.description,
           duration: e.duration,
-          date: e.date.toDateString(),
+          date: new Date(e.date).toDateString(),
         }));
         res.json({
           username: userObject.username,
@@ -153,9 +153,11 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
       res.json({ error: "Please provide a valid duration number" });
       return;
     }
-    if (date === "") date = new Date();
-    else date = new Date(date);
-    if (!isValidDate(date)) res.json({ error: "Invalid date." });
+    date = new Date(date !== "" && date);
+    if (!isValidDate(date)) {
+      res.json({ error: "Invalid date." });
+      return;
+    }
 
     // Add exercise to DB
     const exercise = new ExerciseActivity({
@@ -172,7 +174,7 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
       username: userObject.username,
       description: description,
       duration: duration,
-      date: date.toDateString(),
+      date: new Date(date).toDateString(),
     });
   });
 });
@@ -200,7 +202,6 @@ const getUserByIdAnd = (_id, callback) => {
 const isValidDate = (date) => {
   // https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
   if (Object.prototype.toString.call(date) === "[object Date]") {
-    return true;
     if (isNaN(date.getTime())) {
       // d.valueOf() could also work
       return false;
