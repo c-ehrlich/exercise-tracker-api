@@ -6,6 +6,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const fetch = require("node-fetch");
 
 app.use(cors());
 app.use(express.static("public"));
@@ -173,10 +174,10 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
     }
     if (date === "") date = new Date();
     else date = new Date(date);
-    if (!isValidDate(date)) {
-      res.json({ error: "Invalid date." });
-      return;
-    }
+    // if (!isValidDate(date)) {
+    //   res.json({ error: "Invalid date." });
+    //   return;
+    // }
 
     // Add exercise to DB
     const exercise = new ExerciseActivity({
@@ -211,6 +212,54 @@ app.get("/api/delete", (req, res) => {
       res.json({ status: "All exercise items deleted" });
     });
   });
+});
+
+app.get("/api/test", (req, res) => {
+  const test = async () => {
+    const url = "https://fcc-exercise-tracker-service.herokuapp.com";
+    const res = await fetch(url + "/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `username=fcc_test_${Date.now()}`.substr(0, 29),
+    });
+    if (res.ok) {
+      const { _id, username } = await res.json();
+      const expected = {
+        username,
+        description: "test",
+        duration: 60,
+        _id,
+        date: new Date().toDateString(),
+      };
+      const addRes = await fetch(url + `/api/users/${_id}/exercises`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `description=${expected.description}&duration=${expected.duration}`,
+      });
+      if (addRes.ok) {
+        const addResJson = await addRes.json();
+        console.log("addRes");
+        console.log(addResJson);
+        const logRes = await fetch(url + `/api/users/${_id}/logs`);
+        if (logRes.ok) {
+          const logResJson = await logRes.json();
+          console.log("logRes:");
+          console.log(logResJson);
+          const { count } = logResJson;
+          console.log("count: " + count + " " + typeof count);
+          // assert(count);
+        } else {
+          throw new Error(`${logRes.status} ${logRes.statusText}`);
+        }
+      } else {
+        throw new Error(`${addRes.status} ${addRes.statusText}`);
+      }
+    } else {
+      throw new Error(`${res.status} ${res.statusText}`);
+    }
+  };
+
+  test();
 });
 
 const listener = app.listen(process.env.PORT || 3000, () => {
