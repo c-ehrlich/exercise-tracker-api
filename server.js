@@ -57,7 +57,7 @@ app
    * Returns a list of all users
    */
   .get((req, res) => {
-    ExerciseUser.find({}, (err, docs) => {
+    ExerciseUser.findOne({}, (err, docs) => {
       if (err) {
         console.error(err);
         res.json({ error: err });
@@ -104,6 +104,7 @@ app
 app.get("/api/users/:_id/logs", (req, res) => {
   // get user id from params and check that it won't break the DB query
   const { _id } = req.params;
+  const { from, to, limit } = req.query;
   if (_id.length !== 24) {
     res.json({ error: "User ID needs to be 24 hex characters" });
     return;
@@ -119,7 +120,7 @@ app.get("/api/users/:_id/logs", (req, res) => {
         trimmedExerciseObjects = exerciseObjects.map((e) => ({
           description: e.description,
           duration: e.duration,
-          date: e.date,
+          date: e.date.toDateString(),
         }));
         res.json({
           username: userObject.username,
@@ -152,16 +153,16 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
       res.json({ error: "Please provide a valid duration number" });
       return;
     }
-    date = new Date(date);
-    // TODO validate date
-    const dbDate = date.toDateString();
+    if (date === "") date = new Date();
+    else date = new Date(date);
+    if (!isValidDate(date)) res.json({ error: "Invalid date." });
 
     // Add exercise to DB
     const exercise = new ExerciseActivity({
       user_id: userObject._id,
       description: description,
       duration: duration,
-      date: dbDate,
+      date: date,
     });
     exercise.save();
 
@@ -171,7 +172,7 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
       username: userObject.username,
       description: description,
       duration: duration,
-      date: dbDate,
+      date: date.toDateString(),
     });
   });
 });
@@ -179,8 +180,9 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
 app.get("/api/delete", (req, res) => {
   ExerciseActivity.deleteMany({}, (err) => {
     if (err) console.error(err);
-  })
-})
+    res.json({ status: "All exercise items deleted" });
+  });
+});
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("Your app is listening on port " + listener.address().port);
@@ -193,4 +195,19 @@ const getUserByIdAnd = (_id, callback) => {
   let promise = ExerciseUser.findOne({ _id: _id }).exec();
   assert.ok(promise instanceof Promise);
   promise.then((userObject) => callback(userObject));
+};
+
+const isValidDate = (date) => {
+  // https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
+  if (Object.prototype.toString.call(d) === "[object Date]") {
+    return true;
+    if (isNaN(d.getTime())) {
+      // d.valueOf() could also work
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    return false;
+  }
 };
