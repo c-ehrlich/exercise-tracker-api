@@ -176,6 +176,12 @@ app.post("/api/users/:_id/exercises", bodyParserUrlEncoded, (req, res) => {
   });
 });
 
+app.get("/api/delete", (req, res) => {
+  ExerciseActivity.deleteMany({}, (err) => {
+    if (err) console.error(err);
+  })
+})
+
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
