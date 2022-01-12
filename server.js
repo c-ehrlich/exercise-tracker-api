@@ -57,7 +57,7 @@ app
    * Returns a list of all users
    */
   .get((req, res) => {
-    ExerciseUser.findOne({}, (err, docs) => {
+    ExerciseUser.find({}, (err, docs) => {
       if (err) {
         console.error(err);
         res.json({ error: err });
