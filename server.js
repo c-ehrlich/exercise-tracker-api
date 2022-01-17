@@ -115,8 +115,7 @@ app.get("/api/users/:_id/logs", (req, res) => {
   // get user id from params and check that it won't break the DB query
   const { _id } = req.params;
   if (_id.length !== 24) {
-    res.json({ error: "User ID needs to be 24 hex characters" });
-    return;
+    return res.json({ error: "User ID needs to be 24 hex characters" });
   }
 
   // find the user
@@ -126,24 +125,29 @@ app.get("/api/users/:_id/logs", (req, res) => {
       const limit = req.query.limit ? req.query.limit : 0;
 
       // find the user's activities
-      let promise = ExerciseActivity.find({ user_id: _id }).limit(limit).exec();
+      let promise = ExerciseActivity.find({ user_id: _id }).exec();
       assert.ok(promise instanceof Promise);
       promise.then((exerciseObjects) => {
+        // apply from
         if (req.query.from) {
           const from = new Date(req.query.from);
           exerciseObjects = exerciseObjects.filter(
             (e) => new Date(e.date).getTime() >= from.getTime()
           );
         }
+        // apply to
         if (req.query.to) {
           const to = new Date(req.query.to);
           exerciseObjects = exerciseObjects.filter(
             (e) => new Date(e.date).getTime() <= to.getTime()
           );
         }
+        // apply limit
+        if (req.query.limit) exerciseObjects = exerciseObjects.slice(0, req.query.limit);
+
+        // change date to DateString
         exerciseObjects = exerciseObjects.map((e) => ({
-          description: e.description,
-          duration: e.duration,
+          ...e,
           date: new Date(e.date).toDateString(),
         }));
 
