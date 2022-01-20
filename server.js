@@ -147,7 +147,8 @@ app.get("/api/users/:_id/logs", (req, res) => {
 
         // change date to DateString
         exerciseObjects = exerciseObjects.map((e) => ({
-          ...e,
+          description: e.description,
+          duration: e.duration,
           date: new Date(e.date).toDateString(),
         }));
 
