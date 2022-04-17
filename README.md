@@ -15,7 +15,7 @@ Part of the FreeCodeCamp Back End Development Certification.
 https://fcc-exercise-tracker-service.herokuapp.com/
 
 ## Deployment
-Heroku is shown as a sample deployment because it's free and doesn't required a Procfile.
+Heroku is shown as a sample deployment.
 
 With the [Heroku CLI](https://devcenter.heroku.com/categories/command-line) installed,
 ```
